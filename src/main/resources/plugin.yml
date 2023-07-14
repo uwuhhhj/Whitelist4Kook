@@ -1,0 +1,4 @@
+name: Whitelist4Kook
+version: '${version}'
+main: com.github.yufiriamazenta.whitelist4kook.Whitelist4Kook
+api-version: 1.20

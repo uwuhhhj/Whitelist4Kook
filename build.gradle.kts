@@ -1,54 +1,46 @@
 plugins {
-    id 'java'
+    java
 }
 
-group = 'com.github.yufiriamazenta'
-version = '1.0.0'
+group = "com.github.yufiriamazenta"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
-    maven {
-        url = "https://jitpack.io"
-    }
-    maven {
-        name = "spigotmc-repo"
-        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
-    }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
-    }
+    maven("https://jitpack.io")
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/groups/public/")
 }
 
 dependencies {
-    compileOnly "org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT"
-    compileOnly "com.github.YufiriaMazenta:KookMC:2815a8017a"
-    compileOnly "com.github.YufiriaMazenta:ParettiaLib:c146db9a75"
-    compileOnly "mysql:mysql-connector-java:8.0.29"
-    implementation "com.zaxxer:HikariCP:5.0.0"
+    compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
+    compileOnly("com.github.YufiriaMazenta:KookMC:2815a8017a")
+    compileOnly("com.github.YufiriaMazenta:ParettiaLib:c146db9a75")
+    compileOnly("mysql:mysql-connector-java:8.0.29")
+    implementation("com.zaxxer:HikariCP:5.0.0")
 }
 
-def targetJavaVersion = 17
-java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+group = "com.github.yufiriamazenta"
+version = "1.0.0-dev1"
+java.sourceCompatibility = JavaVersion.VERSION_17
+
+tasks.withType(Jar::class.java) {
+    project.configurations.getByName("implementation").isCanBeResolved = true
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from(configurations.implementation.get().map { if (it.isDirectory) it else zipTree(it) })
 }
 
-tasks.withType(JavaCompile).configureEach {
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
-        options.release = targetJavaVersion
-    }
+tasks.withType(JavaCompile::class.java) {
+    options.encoding = "UTF-8"
 }
 
-processResources {
-    def props = [version: version]
-    inputs.properties props
-    filteringCharset 'UTF-8'
-    filesMatching('plugin.yml') {
-        expand props
+
+tasks {
+    val props = HashMap<String, String>()
+    props["version"] = version.toString()
+    "processResources"(ProcessResources::class) {
+        filesMatching("plugin.yml") {
+            expand(props)
+        }
     }
 }

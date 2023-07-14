@@ -1,1 +1,1 @@
-rootProject.name = 'Whitelist4Kook'
+rootProject.name = "Whitelist4Kook"

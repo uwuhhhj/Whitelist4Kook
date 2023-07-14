@@ -1,0 +1,40 @@
+hikariCP:
+  driver: com.mysql.cj.jdbc.Driver
+  connectionTimeout: 30000
+  maxLifeTime: 30000
+  minimumIdle: 30000
+  maximumPoolSize: 50
+  autoCommit: true
+mysql:
+  address: localhost
+  port: 3306
+  database: test
+  user: root
+  password: 123456
+  args: '?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai'
+#验证码过期的时间，单位为秒
+codeTimeoutSecond: 300
+#允许绑定的服务器ID
+bind_guilds:
+  - 0
+#允许绑定的频道列表
+bind_channels:
+  - 0
+lang:
+  bot:
+    bind:
+      enter_code: '请输入绑定码'
+      not_exist_code: '不存在的绑定码'
+      hint: '您的绑定码是%code%，请加入频道绑定，有效期5分钟'
+      success: '绑定成功！欢迎您加入服务器，%player%'
+      bound: '您已经绑定了一个账号%player%，无法绑定新账号'
+    remove-bind:
+      enter_player: '请输入移除绑定的玩家'
+      no_whitelist: '未查询到此玩家的白名单'
+      success: '已移除%player%的白名单'
+  command:
+    bind:
+      remove:
+        success: '&a已移除%player%绑定的白名单'
+        no_player: '&7请输入移除白名单的玩家名'
+    reload: '&a已重载配置文件'

@@ -1,5 +1,6 @@
 package pers.yufiria.whitelist4kook.data;
 
+import crypticlib.chat.MsgSender;
 import pers.yufiria.whitelist4kook.Whitelist4Kook;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -16,7 +17,6 @@ public class HikariCPUtil {
     public static void initHikariCP() {
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDriverClassName(Configs.hikariCPDriver.value());
-
         hikariConfig.setConnectionTimeout(Configs.hikariCPConnectionTimeout.value());
         hikariConfig.setMinimumIdle(Configs.hikariCPMinimumIdle.value());
         hikariConfig.setMaxLifetime(Configs.hikariCPMaxLifeTime.value());

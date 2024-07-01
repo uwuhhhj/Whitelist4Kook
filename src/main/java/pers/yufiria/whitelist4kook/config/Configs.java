@@ -1,9 +1,11 @@
 package pers.yufiria.whitelist4kook.config;
 
+import crypticlib.config.ConfigHandler;
 import crypticlib.config.entry.*;
 
 import java.util.List;
 
+@ConfigHandler(path = "config.yml")
 public class Configs {
 
     public static StringConfig hikariCPDriver = new StringConfig("hikariCP.driver", "com.mysql.cj.jdbc.Driver");

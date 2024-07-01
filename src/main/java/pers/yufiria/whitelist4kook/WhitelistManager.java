@@ -1,7 +1,8 @@
-package com.github.yufiriamazenta.whitelist4kook;
+package pers.yufiria.whitelist4kook;
 
-import com.github.yufiriamazenta.lib.ParettiaLib;
-import com.github.yufiriamazenta.whitelist4kook.data.DataManager;
+import crypticlib.CrypticLib;
+import pers.yufiria.whitelist4kook.config.Configs;
+import pers.yufiria.whitelist4kook.data.DataManager;
 import snw.jkook.entity.User;
 
 import java.util.Map;
@@ -13,12 +14,12 @@ public class WhitelistManager {
     private static final Map<String, UUID> bindCodeMap = new ConcurrentHashMap<>();
     private static final Map<String, Long> bindCodeTimeStampMap = new ConcurrentHashMap<>();
     private static final Map<UUID, String> reverseBindCodeMap = new ConcurrentHashMap<>();
-
+    private static final Map<UUID, String> playerNameCache = new ConcurrentHashMap<>();
 
     static {
-        ParettiaLib.INSTANCE.getPlatform().runTaskTimer(Whitelist4Kook.getInstance(), (t) -> {
+        CrypticLib.platform().scheduler().runTaskTimer(Whitelist4Kook.getInstance(), () -> {
             long timeStamp = System.currentTimeMillis();
-            long timeout = Whitelist4Kook.getInstance().getConfig().getLong("codeTimeoutSecond", 300L) * 1000;
+            long timeout = Configs.codeTimeoutSecond.value() * 1000;
             for (String key : bindCodeTimeStampMap.keySet()) {
                 if (timeStamp - bindCodeTimeStampMap.get(key) >= timeout) {
                     removeBindCodeCache(key);
@@ -55,14 +56,21 @@ public class WhitelistManager {
         return reverseBindCodeMap;
     }
 
-    public static void addBindCodeCache(String code, UUID uuid) {
+    public static String getPlayerNameCache(UUID uuid) {
+        return playerNameCache.get(uuid);
+    }
+
+    public static void addBindCodeCache(String code, UUID uuid, String name) {
         bindCodeMap.put(code, uuid);
         reverseBindCodeMap.put(uuid, code);
         bindCodeTimeStampMap.put(code, System.currentTimeMillis());
+        playerNameCache.put(uuid, name);
     }
 
     public static void removeBindCodeCache(String code) {
-        reverseBindCodeMap.remove(bindCodeMap.get(code));
+        UUID uuid = bindCodeMap.get(code);
+        reverseBindCodeMap.remove(uuid);
+        playerNameCache.remove(uuid);
         bindCodeMap.remove(code);
         bindCodeTimeStampMap.remove(code);
     }

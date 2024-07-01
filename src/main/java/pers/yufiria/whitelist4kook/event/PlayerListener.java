@@ -1,11 +1,12 @@
-package com.github.yufiriamazenta.whitelist4kook.event;
+package pers.yufiria.whitelist4kook.event;
 
-import com.github.yufiriamazenta.lib.util.MsgUtil;
-import com.github.yufiriamazenta.whitelist4kook.Whitelist4Kook;
-import com.github.yufiriamazenta.whitelist4kook.WhitelistManager;
+import crypticlib.chat.TextProcessor;
+import pers.yufiria.whitelist4kook.Whitelist4Kook;
+import pers.yufiria.whitelist4kook.WhitelistManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import pers.yufiria.whitelist4kook.config.Configs;
 
 import java.util.UUID;
 
@@ -24,11 +25,12 @@ public enum PlayerListener implements Listener {
             } else {
                 code = UUID.randomUUID().toString();
                 code = code.substring(code.length() - 6);
-                WhitelistManager.addBindCodeCache(code, uuid);
+                WhitelistManager.addBindCodeCache(code, uuid, event.getName());
             }
-            String msg = Whitelist4Kook.getInstance().getConfig().getString("lang.bot.bind.hint", "%code%");
+
+            String msg = Configs.langBotBindHint.value();
             msg = msg.replace("%code%", code);
-            msg = MsgUtil.color(msg);
+            msg = TextProcessor.color(msg);
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, msg);
         }
     }

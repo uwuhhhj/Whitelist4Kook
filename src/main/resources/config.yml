@@ -8,7 +8,7 @@ hikariCP:
 mysql:
   address: localhost
   port: 3306
-  database: test
+  database: whitelist
   user: root
   password: 123456
   args: '?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai'
@@ -33,8 +33,7 @@ lang:
       no_whitelist: '未查询到此玩家的白名单'
       success: '已移除%player%的白名单'
   command:
-    bind:
-      remove:
-        success: '&a已移除%player%绑定的白名单'
-        no_player: '&7请输入移除白名单的玩家名'
+    remove:
+      success: '&a已移除%player%绑定的白名单'
+      no_player: '&7请输入移除白名单的玩家名'
     reload: '&a已重载配置文件'

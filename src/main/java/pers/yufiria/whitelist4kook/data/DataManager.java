@@ -1,4 +1,4 @@
-package com.github.yufiriamazenta.whitelist4kook.data;
+package pers.yufiria.whitelist4kook.data;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

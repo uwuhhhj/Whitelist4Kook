@@ -1,38 +1,30 @@
-package com.github.yufiriamazenta.whitelist4kook;
+package pers.yufiria.whitelist4kook;
 
-import com.github.yufiriamazenta.kookmc.KookMC;
-import com.github.yufiriamazenta.lib.util.MsgUtil;
-import com.github.yufiriamazenta.whitelist4kook.cmd.Whitelist4KookCmd;
-import com.github.yufiriamazenta.whitelist4kook.data.DataManager;
-import com.github.yufiriamazenta.whitelist4kook.data.HikariCPUtil;
-import com.github.yufiriamazenta.whitelist4kook.event.PlayerListener;
+import pers.yufiria.whitelist4kook.config.Configs;
+import pers.yufiria.whitelist4kook.data.DataManager;
+import pers.yufiria.whitelist4kook.data.HikariCPUtil;
+import pers.yufiria.whitelist4kook.event.PlayerListener;
+import crypticlib.BukkitPlugin;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.plugin.java.JavaPlugin;
-import snw.jkook.Permission;
+import pers.yufiria.kookmc.KookMC;
 import snw.jkook.command.JKookCommand;
 import snw.jkook.entity.Guild;
 import snw.jkook.entity.channel.TextChannel;
 import snw.jkook.message.TextChannelMessage;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.UUID;
 
-public final class Whitelist4Kook extends JavaPlugin {
+public final class Whitelist4Kook extends BukkitPlugin {
 
     private static Whitelist4Kook INSTANCE;
 
     @Override
-    public void onEnable() {
+    public void enable() {
         INSTANCE = this;
-        saveDefaultConfig();
         HikariCPUtil.initHikariCP();
         DataManager.createTable();
         Bukkit.getPluginManager().registerEvents(PlayerListener.INSTANCE, this);
         regWhitelistCmd();
-        Bukkit.getPluginCommand("whitelist4kook").setExecutor(Whitelist4KookCmd.INSTANCE);
-        Bukkit.getPluginCommand("whitelist4kook").setTabCompleter(Whitelist4KookCmd.INSTANCE);
     }
 
     private void regWhitelistCmd() {
@@ -42,26 +34,26 @@ public final class Whitelist4Kook extends JavaPlugin {
                     if (!isChannelAllowBind((TextChannelMessage) message))
                         return;
                     if (WhitelistManager.getBind(user) != null) {
-                        String replyMsg = getConfig().getString("lang.bot.bind.bound", "lang.bot.bind.bound");
+                        String replyMsg = Configs.langBotBindBound.value();
                         String playerName = Bukkit.getOfflinePlayer(UUID.fromString(WhitelistManager.getBind(user))).getName();
                         replyMsg = replyMsg.replace("%player%", playerName);
                         message.reply(replyMsg);
                         return;
                     }
                     if (arguments.length < 1) {
-                        message.reply(getConfig().getString("lang.bot.bind.enter_code"));
+                        message.reply(Configs.langBotBindEnterCode.value());
                         return;
                     }
                     String code = arguments[0].toString();
                     code = code.replace("\\s", "");
                     if (!WhitelistManager.getBindCodeMap().containsKey(code)) {
-                        message.reply(getConfig().getString("lang.bot.bind.not_exist_code"));
+                        message.reply(Configs.langBotBindNotExistCode.value());
                         return;
                     }
                     UUID uuid = WhitelistManager.getBindCodeMap().get(code);
                     WhitelistManager.addBind(WhitelistManager.getBindCodeMap().get(code), user);
-                    String replyMsg = getConfig().getString("lang.bot.bind.success");
-                    replyMsg = replyMsg.replace("%player%", Bukkit.getOfflinePlayer(uuid).getName());
+                    String replyMsg = Configs.langBotBindSuccess.value();
+                    replyMsg = replyMsg.replace("%player%", WhitelistManager.getPlayerNameCache(uuid));
                     message.reply(replyMsg);
                     WhitelistManager.removeBindCodeCache(code);
                 }));
@@ -91,14 +83,14 @@ public final class Whitelist4Kook extends JavaPlugin {
     private boolean isChannelAllowBind(TextChannelMessage message) {
         TextChannel channel = message.getChannel();
         Guild guild = channel.getGuild();
-        if (!Whitelist4Kook.INSTANCE.getConfig().getStringList("bind_guilds").contains(guild.getId())) {
+        if (!Configs.bindGuilds.value().contains(guild.getId())) {
             return false;
         }
-        return Whitelist4Kook.INSTANCE.getConfig().getStringList("bind_channels").contains(channel.getId());
+        return Configs.bindChannels.value().contains(channel.getId());
     }
 
     @Override
-    public void onDisable() {
+    public void disable() {
         // Plugin shutdown logic
     }
 

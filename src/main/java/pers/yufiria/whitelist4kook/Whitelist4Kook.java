@@ -9,8 +9,8 @@ import org.bukkit.Bukkit;
 import pers.yufiria.kookmc.KookMC;
 import snw.jkook.command.JKookCommand;
 import snw.jkook.entity.Guild;
-import snw.jkook.entity.channel.TextChannel;
-import snw.jkook.message.TextChannelMessage;
+import snw.jkook.entity.channel.Channel;
+import snw.jkook.message.ChannelMessage;
 
 import java.util.UUID;
 
@@ -31,7 +31,7 @@ public final class Whitelist4Kook extends BukkitPlugin {
         KookMC.getInstance().regKookCommand(new JKookCommand("whitelist", "/")
                 .addAlias("wl")
                 .executesUser((user, arguments, message) -> {
-                    if (!isChannelAllowBind((TextChannelMessage) message))
+                    if (!isChannelAllowBind((ChannelMessage) message))
                         return;
                     if (WhitelistManager.getBind(user) != null) {
                         String replyMsg = Configs.langBotBindBound.value();
@@ -80,8 +80,8 @@ public final class Whitelist4Kook extends BukkitPlugin {
 //                })));
     }
 
-    private boolean isChannelAllowBind(TextChannelMessage message) {
-        TextChannel channel = message.getChannel();
+    private boolean isChannelAllowBind(ChannelMessage message) {
+        Channel channel = message.getChannel();
         Guild guild = channel.getGuild();
         if (!Configs.bindGuilds.value().contains(guild.getId())) {
             return false;

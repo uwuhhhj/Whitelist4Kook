@@ -16,6 +16,7 @@ import pers.yufiria.whitelist4kook.WhitelistManager;
 import pers.yufiria.whitelist4kook.config.Configs;
 
 import java.util.List;
+import java.util.Map;
 
 @Command
 public class Whitelist4KookCmd extends CommandHandler {
@@ -48,7 +49,7 @@ public class Whitelist4KookCmd extends CommandHandler {
 
             OfflinePlayer player = Bukkit.getOfflinePlayer(args.get(0));
             WhitelistManager.removeBind(player.getUniqueId());
-            MsgSender.sendMsg(sender, Configs.langCommandRemoveSuccess.value());
+            MsgSender.sendMsg(sender, Configs.langCommandRemoveSuccess.value(), Map.of("%player%", args.get(0)));
             return true;
         }
     };

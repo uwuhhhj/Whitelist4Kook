@@ -11,6 +11,7 @@ import pers.yufiria.whitelist4kook.config.Configs;
 import pers.yufiria.whitelist4kook.data.DataManager;
 import pers.yufiria.whitelist4kook.data.HikariCPUtil;
 import pers.yufiria.whitelist4kook.event.PlayerListener;
+import pers.yufiria.whitelist4kook.event.KookMessageListener;
 import crypticlib.BukkitPlugin;
 import snw.jkook.command.JKookCommand;
 import snw.jkook.entity.Guild;
@@ -27,6 +28,7 @@ public final class Whitelist4Kook extends BukkitPlugin {
         HikariCPUtil.initHikariCP();
         DataManager.createTable();
         Bukkit.getPluginManager().registerEvents(PlayerListener.INSTANCE, this);
+        Bukkit.getPluginManager().registerEvents(KookMessageListener.INSTANCE, this);
         this.whitelistEnabled = (Boolean)Configs.enabled.value();
         try{
             this.regKookUserBindCmd();

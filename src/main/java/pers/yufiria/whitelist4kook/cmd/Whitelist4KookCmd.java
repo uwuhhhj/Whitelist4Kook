@@ -39,7 +39,7 @@ public class Whitelist4KookCmd extends CommandHandler {
     };
 
     @Subcommand
-    SubcommandHandler remove = new SubcommandHandler("remove", new PermInfo("whitelist4kook.command.remove")) {
+    SubcommandHandler remove = new SubcommandHandler("playerbindremove", new PermInfo("whitelist4kook.command.remove")) {
         @Override
         public boolean execute(@NotNull CommandSender sender, @NotNull List<String> args) {
             if (args.isEmpty()) {
@@ -143,6 +143,64 @@ public class Whitelist4KookCmd extends CommandHandler {
                 MsgSender.sendMsg(sender, "&a已强制绑定 &e" + kookId + " &7<-> &b" + playerName);
             } catch (Throwable t) {
                 MsgSender.sendMsg(sender, "&c绑定失败: " + t.getMessage());
+            }
+            return true;
+        }
+    };
+
+    @Subcommand
+    SubcommandHandler findbind = new SubcommandHandler("findbind", new PermInfo("whitelist4kook.command.findbind")) {
+        @Override
+        public boolean execute(@NotNull CommandSender sender, @NotNull List<String> args) {
+            if (args.size() != 2) {
+                MsgSender.sendMsg(sender, "&7用法: /whitelist4kook findbind <kookId|playerName> <纯数字的kookId|游戏idplayerName>");
+                return true;
+            }
+
+            String mode = args.get(0).trim().toLowerCase();
+            String value = args.get(1).trim();
+            try {
+                switch (mode) {
+                    case "kookid": {
+                        if (!value.matches("\\d+")) {
+                            MsgSender.sendMsg(sender, "&c参数错误: kookId 应为纯数字");
+                            return true;
+                        }
+                        String uuidStr = pers.yufiria.whitelist4kook.data.DataManager.getBind(value);
+                        if (uuidStr == null) {
+                            MsgSender.sendMsg(sender, "&e未找到绑定: &7kookId=&f" + value);
+                            return true;
+                        }
+
+                        java.util.UUID uuid = java.util.UUID.fromString(uuidStr);
+                        org.bukkit.OfflinePlayer offlinePlayer = org.bukkit.Bukkit.getOfflinePlayer(uuid);
+                        String name = offlinePlayer != null ? offlinePlayer.getName() : null;
+                        if (name == null) name = "<unknown>";
+                        MsgSender.sendMsg(sender, "&a绑定信息: &e" + value + " &7<-> &b" + name + " &8(" + uuid + ")");
+                        return true;
+                    }
+                    case "playername": {
+                        org.bukkit.OfflinePlayer player = org.bukkit.Bukkit.getOfflinePlayer(value);
+                        java.util.UUID uuid = player.getUniqueId();
+                        if (uuid == null) {
+                            MsgSender.sendMsg(sender, "&c无法获取玩家UUID: " + value);
+                            return true;
+                        }
+                        String kookId = pers.yufiria.whitelist4kook.WhitelistManager.getBind(uuid);
+                        if (kookId == null) {
+                            MsgSender.sendMsg(sender, "&e未找到绑定: &7player=&f" + value);
+                        } else {
+                            MsgSender.sendMsg(sender, "&a绑定信息: &b" + value + " &7<-> &e" + kookId + " &8(" + uuid + ")");
+                        }
+                        return true;
+                    }
+                    default: {
+                        MsgSender.sendMsg(sender, "&7用法: /whitelist4kook findbind <kookId|playerName> <纯数字的kookId|游戏idplayerName>");
+                        return true;
+                    }
+                }
+            } catch (Throwable t) {
+                MsgSender.sendMsg(sender, "&c查询失败: " + t.getMessage());
             }
             return true;
         }

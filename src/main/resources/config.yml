@@ -28,7 +28,7 @@ roles:
 lang:
   bot:
     bind:
-      enter_code: '请输入绑定码'
+      enter_code: '你输入的不对,请输入-->/bind 绑定码'
       not_exist_code: '不存在的绑定码'
       hint: '您的绑定码是%code%，请加入频道绑定，有效期5分钟'
       success: '绑定成功！欢迎您加入服务器，%player%'

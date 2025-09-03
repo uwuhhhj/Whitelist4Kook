@@ -1,0 +1,224 @@
+    1 package pers.yufiria.whitelist4kook;
+    2 
+    3 import pers.yufiria.whitelist4kook.config.Configs;
+    4 import pers.yufiria.whitelist4kook.data.DataManager;
+    5 import pers.yufiria.whitelist4kook.data.HikariCPUtil;
+    6 import pers.yufiria.whitelist4kook.event.PlayerListener;
+    7 import crypticlib.BukkitPlugin;
+    8 import org.bukkit.Bukkit;
+    9 import pers.yufiria.kookmc.KookMC;
+   10 import snw.jkook.command.JKookCommand;
+   11 import snw.jkook.entity.Guild;
+   12 import snw.jkook.entity.User;
+   13 import snw.jkook.entity.channel.Channel;
+   14 import snw.jkook.message.ChannelMessage;
+   15 import org.bukkit.configuration.ConfigurationSection;
+   16 
+   17 import java.util.UUID;
+   18 import java.util.Collection;
+   19 import java.util.Map;
+   20 import java.util.Optional;
+   21 
+   22 public final class Whitelist4Kook extends BukkitPlugin {
+   23 
+   24     private static Whitelist4Kook INSTANCE;
+   25     private volatile boolean whitelistEnabled;
+   26 
+   27     @Override
+   28     public void enable() {
+   29         INSTANCE = this;
+   30         HikariCPUtil.initHikariCP();
+   31         DataManager.createTable();
+   32         Bukkit.getPluginManager().registerEvents(PlayerListener.INSTANCE, this);
+   33         // Load whitelist enabled flag from config
+   34         whitelistEnabled = Configs.enabled.value();
+   35         regKookUserBindCmd();
+   36     }
+   37 
+   38     private void regKookUserBindCmd() {
+   39         KookMC.getInstance().regKookCommand(new JKookCommand("bind", "/")
+   40                 .addAlias("bd")
+   41                 .executesUser((user, arguments, message) -> {
+   42                     if (!isChannelAllowBind((ChannelMessage) message))
+   43                         return;
+   44                     // 如果用户已经绑定，则返回绑定信息
+   45                     if (WhitelistManager.getBind(user) != null) {
+   46                         String replyMsg = Configs.langBotBindBound.value();
+   47                         String playerName = Bukkit.getOfflinePlayer(UUID.fromString(WhitelistManager.getBind(user))).getName();
+   48                         replyMsg = replyMsg.replace("%player%", playerName);
+   49                         message.reply(replyMsg);
+   50                         return;
+   51                     }
+   52                     // 如果用户没有输入绑定码，则提示用户输入绑定码
+   53                     if (arguments.length < 1) {
+   54                         message.reply(Configs.langBotBindEnterCode.value());
+   55                         return;
+   56                     }
+   57                     String code = arguments[0].toString();
+   58                     code = code.replace("\\s", "");
+   59                     // 如果绑定码不存在，则提示用户绑定码不存在
+   60                     if (!WhitelistManager.getBindCodeMap().containsKey(code)) {
+   61                         message.reply(Configs.langBotBindNotExistCode.value());
+   62                         return;
+   63                     }
+   64                     // 如果绑定码存在，则执行绑定用户操�?
+   65                     UUID uuid = WhitelistManager.getBindCodeMap().get(code);
+   66                     WhitelistManager.addBind(WhitelistManager.getBindCodeMap().get(code), user);
+   67                     String replyMsg = Configs.langBotBindSuccess.value();
+   68                     replyMsg = replyMsg.replace("%player%", WhitelistManager.getPlayerNameCache(uuid));
+   69                     message.reply(replyMsg);
+   70                     WhitelistManager.removeBindCodeCache(code);
+   71                 }));
+   72         KookMC.getInstance().regKookCommand(new JKookCommand("你好", "/")
+   73                 .executesUser((user, arguments, message) -> {
+   74                     // 获取用户角色，判断并返回最高等级角色（等级根据映射的顺序），可以为�?
+   75                     Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+   76                     String topRole = getTopRoleByOrder(user, guild);
+   77                     if (topRole != null) {
+   78                         message.reply("你好" + topRole);
+   79                     } else {
+   80                         message.reply("你好你没有角�?);
+   81                     }
+   82                 }));
+   83     
+   84         KookMC.getInstance().regKookCommand(new JKookCommand("bind-kookid-search", "/")
+   85                 .executesUser((user, arguments, message) -> {
+   86                     Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+   87                     String topRole = getTopRoleByOrder(user, guild);
+   88                     if (topRole == null) {
+   89                         message.reply("你没有权限进行查�?);
+   90                         return;
+   91                     }
+   92                     if (arguments.length < 1) {
+   93                         message.reply("请输入查询的kookid参数");
+   94                         return;
+   95                     }
+   96                     String kookId = arguments[0].toString().trim();
+   97                     if (!kookId.matches("\\d+")) {
+   98                         message.reply("kookid必须为纯数字");
+   99                         return;
+  100                     }
+  101                     String uuidStr = DataManager.getBind(kookId);
+  102                     if (uuidStr == null || uuidStr.isEmpty()) {
+  103                         message.reply("未找到该KOOK ID的绑定记�?);
+  104                         return;
+  105                     }
+  106                     try {
+  107                         UUID uuid = UUID.fromString(uuidStr);
+  108                         String playerName = Bukkit.getOfflinePlayer(uuid).getName();
+  109                         if (playerName == null || playerName.isEmpty()) {
+  110                             message.reply("查询到绑定，但未获取到玩家名");
+  111                         } else {
+  112                             message.reply("绑定的玩家：" + playerName);
+  113                         }
+  114                     } catch (Throwable t) {
+  115                         message.reply("查询到记录，但UUID无效�? + uuidStr);
+  116                     }
+  117                 }));
+  118         KookMC.getInstance().regKookCommand(new JKookCommand("bind-player-search", "/")
+  119                 .executesUser((user, arguments, message) -> {
+  120                     Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+  121                     String topRole = getTopRoleByOrder(user, guild);
+  122                     if (topRole == null) {
+  123                         message.reply("你没有权限进行查�?);
+  124                         return;
+  125                     }
+  126                     if (arguments.length < 1) {
+  127                         message.reply("请输入查询的玩家名字");
+  128                         return;
+  129                     }
+  130                     String playerName = arguments[0].toString().trim();
+  131                     if (playerName.isEmpty()) {
+  132                         message.reply("玩家名不能为�?);
+  133                         return;
+  134                     }
+  135                     try {
+  136                         UUID uuid = Bukkit.getOfflinePlayer(playerName).getUniqueId();
+  137                         if (uuid == null) {
+  138                             message.reply("未找到该玩家的UUID");
+  139                             return;
+  140                         }
+  141                         String kookId = DataManager.getBind(uuid);
+  142                         if (kookId == null || kookId.isEmpty()) {
+  143                             message.reply("未找到该玩家的绑定记�?);
+  144                         } else {
+  145                             message.reply("绑定的KOOK ID�? + kookId);
+  146                         }
+  147                     } catch (Throwable t) {
+  148                         message.reply("查询失败，请检查玩家名是否正确");
+  149                     }
+  150                 }));
+  151         }
+  152 
+  153 
+  154 
+  155     private int getRoleIdFromConfig(String key) {
+  156         try {
+  157             ConfigurationSection section = Configs.roles.value();
+  158             if (section == null) return -1;
+  159             String idStr = section.getString(key);
+  160             if (idStr == null || idStr.isEmpty()) return -1;
+  161             return Integer.parseInt(idStr.trim().replace("'", ""));
+  162         } catch (Throwable ignored) {
+  163             return -1;
+  164         }
+  165     }
+  166 
+  167     // 根据 config.yml �?roles 的定义顺序，返回用户在该服务器的最高等级角色名称；如果没有匹配则返�?null
+  168     private String getTopRoleByOrder(User user, Guild guild) {
+  169         try {
+  170             ConfigurationSection section = Configs.roles.value();
+  171             if (section == null) return null;
+  172             Collection<Integer> userRoles = user.getRoles(guild);
+  173             if (userRoles == null || userRoles.isEmpty()) return null;
+  174 
+  175             for (String roleName : section.getKeys(false)) { // 迭代顺序即为映射顺序
+  176                 String idStr = section.getString(roleName);
+  177                 if (idStr == null) continue;
+  178                 try {
+  179                     int id = Integer.parseInt(idStr.trim().replace("'", ""));
+  180                     if (userRoles.contains(id)) {
+  181                         return roleName;
+  182                     }
+  183                 } catch (NumberFormatException ignored) {
+  184                 }
+  185             }
+  186             return null;
+  187         } catch (Throwable ignored) {
+  188             return null;
+  189         }
+  190     }
+  191 
+  192     private boolean isChannelAllowBind(ChannelMessage message) {
+  193         Channel channel = message.getChannel();
+  194         Guild guild = channel.getGuild();
+  195         if (!Configs.bindGuilds.value().contains(guild.getId())) {
+  196             return false;
+  197         }
+  198         return Configs.bindChannels.value().contains(channel.getId());
+  199     }
+  200 
+  201     @Override
+  202     public void disable() {
+  203         // Plugin shutdown logic
+  204     }
+  205 
+  206 
+  207     public static Whitelist4Kook getInstance() {
+  208         return INSTANCE;
+  209     }
+  210 
+  211     public boolean isWhitelistEnabled() {
+  212         return whitelistEnabled;
+  213     }
+  214 
+  215     public void setWhitelistEnabled(boolean enabled) {
+  216         this.whitelistEnabled = enabled;
+  217         try {
+  218             getConfig().set("enabled", enabled);
+  219             saveConfig();
+  220         } catch (Throwable ignored) {
+  221         }
+  222     }
+  223 
+  224 }

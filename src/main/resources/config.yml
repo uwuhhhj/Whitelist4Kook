@@ -12,6 +12,8 @@ mysql:
   user: root
   password: 123456
   args: '?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai'
+#是否踢出未绑定玩家
+enabled: false
 #验证码过期的时间，单位为秒
 codeTimeoutSecond: 300
 #允许绑定的服务器ID
@@ -20,6 +22,9 @@ bind_guilds:
 #允许绑定的频道列表
 bind_channels:
   - 0
+roles:
+  工作人员: '48456844'
+  玩家: '40572151'
 lang:
   bot:
     bind:
@@ -28,6 +33,7 @@ lang:
       hint: '您的绑定码是%code%，请加入频道绑定，有效期5分钟'
       success: '绑定成功！欢迎您加入服务器，%player%'
       bound: '您已经绑定了一个账号%player%，无法绑定新账号'
+      uuid_already_bound: '此玩家已经绑定了其他的kook账号，您不可以变更绑定！'
     remove-bind:
       enter_player: '请输入移除绑定的玩家'
       no_whitelist: '未查询到此玩家的白名单'

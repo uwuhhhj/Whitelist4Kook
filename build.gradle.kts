@@ -8,7 +8,7 @@ version = "1.0.1"
 
 repositories {
     mavenCentral()
-    maven("http://repo.crypticlib.com:8081/repository/maven-public/") {
+    maven("https://repo.crypticlib.com:8081/repository/maven-public/") {
         isAllowInsecureProtocol = true
     }
     maven("https://jitpack.io")

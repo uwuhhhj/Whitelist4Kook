@@ -1,0 +1,200 @@
+0001:package pers.yufiria.whitelist4kook;
+0002:
+0003:import pers.yufiria.whitelist4kook.config.Configs;
+0004:import pers.yufiria.whitelist4kook.data.DataManager;
+0005:import pers.yufiria.whitelist4kook.data.HikariCPUtil;
+0006:import pers.yufiria.whitelist4kook.event.PlayerListener;
+0007:import crypticlib.BukkitPlugin;
+0008:import org.bukkit.Bukkit;
+0009:import pers.yufiria.kookmc.KookMC;
+0010:import snw.jkook.command.JKookCommand;
+0011:import snw.jkook.entity.Guild;
+0012:import snw.jkook.entity.User;
+0013:import snw.jkook.entity.channel.Channel;
+0014:import snw.jkook.message.ChannelMessage;
+0015:import org.bukkit.configuration.ConfigurationSection;
+0016:
+0017:import java.util.UUID;
+0018:import java.util.Collection;
+0019:import java.util.Map;
+0020:import java.util.Optional;
+0021:
+0022:public final class Whitelist4Kook extends BukkitPlugin {
+0023:
+0024:    private static Whitelist4Kook INSTANCE;
+0025:    private volatile boolean whitelistEnabled;
+0026:    private static final String STAFF_ROLE_KEY = "工作�?;
+0027:    private static final String PLAYER_ROLE_KEY = "玩家";
+0028:
+0029:    @Override
+0030:    public void enable() {
+0031:        INSTANCE = this;
+0032:        HikariCPUtil.initHikariCP();
+0033:        DataManager.createTable();
+0034:        Bukkit.getPluginManager().registerEvents(PlayerListener.INSTANCE, this);
+0035:        // Load whitelist enabled flag from config
+0036:        whitelistEnabled = Configs.enabled.value();
+0037:        regKookUserBindCmd();
+0038:    }
+0039:
+0040:    private void regKookUserBindCmd() {
+0041:        KookMC.getInstance().regKookCommand(new JKookCommand("bind", "/")
+0042:                .addAlias("bd")
+0043:                .executesUser((user, arguments, message) -> {
+0044:                    if (!isChannelAllowBind((ChannelMessage) message))
+0045:                        return;
+0046:                    // 如果用户已经绑定，则返回绑定信息
+0047:                    if (WhitelistManager.getBind(user) != null) {
+0048:                        String replyMsg = Configs.langBotBindBound.value();
+0049:                        String playerName = Bukkit.getOfflinePlayer(UUID.fromString(WhitelistManager.getBind(user))).getName();
+0050:                        replyMsg = replyMsg.replace("%player%", playerName);
+0051:                        message.reply(replyMsg);
+0052:                        return;
+0053:                    }
+0054:                    // 如果用户没有输入绑定码，则提示用户输入绑定码
+0055:                    if (arguments.length < 1) {
+0056:                        message.reply(Configs.langBotBindEnterCode.value());
+0057:                        return;
+0058:                    }
+0059:                    String code = arguments[0].toString();
+0060:                    code = code.replace("\\s", "");
+0061:                    // 如果绑定码不存在，则提示用户绑定码不存在
+0062:                    if (!WhitelistManager.getBindCodeMap().containsKey(code)) {
+0063:                        message.reply(Configs.langBotBindNotExistCode.value());
+0064:                        return;
+0065:                    }
+0066:                    // 如果绑定码存在，则执行绑定用户操�?
+0067:                    UUID uuid = WhitelistManager.getBindCodeMap().get(code);
+0068:                    WhitelistManager.addBind(WhitelistManager.getBindCodeMap().get(code), user);
+0069:                    String replyMsg = Configs.langBotBindSuccess.value();
+0070:                    replyMsg = replyMsg.replace("%player%", WhitelistManager.getPlayerNameCache(uuid));
+0071:                    message.reply(replyMsg);
+0072:                    WhitelistManager.removeBindCodeCache(code);
+0073:                }));
+0074:        KookMC.getInstance().regKookCommand(new JKookCommand("你好", "/")
+0075:                .executesUser((user, arguments, message) -> {
+0076:                    // 获取用户角色，判断并返回最高等级角色（等级根据映射的顺序），可以为�?
+0077:                    Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+0078:                    String topRole = getTopRoleByOrder(user, guild);
+0079:                    if (topRole != null) {
+0080:                        message.reply("你好" + topRole);
+0081:                    } else {
+0082:                        message.reply("你好你没有角�?);
+0083:                    }
+0084:
+0085:                    //TODO 未做权限校验
+0086:                }));
+0087:
+0088:            
+0089://                .addAlias("rmb")
+0090://                .executesUser(((user, args, message) -> {
+0091://                    if (!isChannelAllowBind((TextChannelMessage) message))
+0092://                        return;
+0093://                    //TODO 未做权限校验
+0094://                    Collection<Integer> roleId = user.getRoles(((TextChannelMessage) message).getChannel().getGuild());
+0095://                    if (args.length < 1) {
+0096://                        message.reply(getConfig().getString("lang.bot.remove-bind.enter_player", "lang.bot.remove-bind.enter_player"));
+0097://                        return;
+0098://                    }
+0099://
+0100://                    OfflinePlayer player = Bukkit.getOfflinePlayer(args[0].toString());
+0101://                    if (WhitelistManager.getBind(player.getUniqueId()) == null) {
+0102://                        message.reply(getConfig().getString("lang.bot.remove-bind.no_whitelist", "lang.bot.remove-bind.no_whitelist"));
+0103://                        return;
+0104://                    }
+0105://                    WhitelistManager.removeBind(player.getUniqueId());
+0106://                    message.reply(getConfig().getString("lang.bot.remove-bind.success", "lang.bot.remove-bind.success")
+0107://                            .replace("%player%", args[0].toString()));
+0108://                })));
+0109:    
+0110:        KookMC.getInstance().regKookCommand(new JKookCommand("bindsearch", "/")
+0111:                .addAlias("bd")
+0112:                .executesUser((user, arguments, message) -> {
+0113:                    
+0114:                    Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+0115:                    String topRole = getTopRoleByOrder(user, guild);
+0116:                    if (topRole != null) {
+0117:                        message.reply("你好" + topRole);
+0118:                    } else {
+0119:                        message.reply("你好你没有角�?);
+0120:                    }
+0121:                    if(arguments.length < 1){
+0122:                        message.reply("请输入参�?);
+0123:                        return;
+0124:                    }
+0125:                    
+0126:                }));
+0127:        }
+0128:
+0129:
+0130:
+0131:    private int getRoleIdFromConfig(String key) {
+0132:        try {
+0133:            ConfigurationSection section = Configs.roles.value();
+0134:            if (section == null) return -1;
+0135:            String idStr = section.getString(key);
+0136:            if (idStr == null || idStr.isEmpty()) return -1;
+0137:            return Integer.parseInt(idStr.trim().replace("'", ""));
+0138:        } catch (Throwable ignored) {
+0139:            return -1;
+0140:        }
+0141:    }
+0142:
+0143:    // 根据 config.yml �?roles 的定义顺序，返回用户在该服务器的最高等级角色名称；如果没有匹配则返�?null
+0144:    private String getTopRoleByOrder(User user, Guild guild) {
+0145:        try {
+0146:            ConfigurationSection section = Configs.roles.value();
+0147:            if (section == null) return null;
+0148:            Collection<Integer> userRoles = user.getRoles(guild);
+0149:            if (userRoles == null || userRoles.isEmpty()) return null;
+0150:
+0151:            for (String roleName : section.getKeys(false)) { // 迭代顺序即为映射顺序
+0152:                String idStr = section.getString(roleName);
+0153:                if (idStr == null) continue;
+0154:                try {
+0155:                    int id = Integer.parseInt(idStr.trim().replace("'", ""));
+0156:                    if (userRoles.contains(id)) {
+0157:                        return roleName;
+0158:                    }
+0159:                } catch (NumberFormatException ignored) {
+0160:                }
+0161:            }
+0162:            return null;
+0163:        } catch (Throwable ignored) {
+0164:            return null;
+0165:        }
+0166:    }
+0167:
+0168:    private boolean isChannelAllowBind(ChannelMessage message) {
+0169:        Channel channel = message.getChannel();
+0170:        Guild guild = channel.getGuild();
+0171:        if (!Configs.bindGuilds.value().contains(guild.getId())) {
+0172:            return false;
+0173:        }
+0174:        return Configs.bindChannels.value().contains(channel.getId());
+0175:    }
+0176:
+0177:    @Override
+0178:    public void disable() {
+0179:        // Plugin shutdown logic
+0180:    }
+0181:
+0182:
+0183:    public static Whitelist4Kook getInstance() {
+0184:        return INSTANCE;
+0185:    }
+0186:
+0187:    public boolean isWhitelistEnabled() {
+0188:        return whitelistEnabled;
+0189:    }
+0190:
+0191:    public void setWhitelistEnabled(boolean enabled) {
+0192:        this.whitelistEnabled = enabled;
+0193:        try {
+0194:            getConfig().set("enabled", enabled);
+0195:            saveConfig();
+0196:        } catch (Throwable ignored) {
+0197:        }
+0198:    }
+0199:
+0200:}

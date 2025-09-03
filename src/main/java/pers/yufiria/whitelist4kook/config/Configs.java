@@ -8,6 +8,8 @@ import java.util.List;
 @ConfigHandler(path = "config.yml")
 public class Configs {
 
+    public static BooleanConfig enabled = new BooleanConfig("enabled", true);
+
     public static StringConfig hikariCPDriver = new StringConfig("hikariCP.driver", "com.mysql.cj.jdbc.Driver");
     public static IntConfig hikariCPConnectionTimeout = new IntConfig("hikariCP.connectionTimeout", 30000);
     public static IntConfig hikariCPMaxLifeTime = new IntConfig("hikariCP.maxLifeTime", 30000);

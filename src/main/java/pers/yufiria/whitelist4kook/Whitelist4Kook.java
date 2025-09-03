@@ -17,6 +17,7 @@ import java.util.UUID;
 public final class Whitelist4Kook extends BukkitPlugin {
 
     private static Whitelist4Kook INSTANCE;
+    private volatile boolean whitelistEnabled;
 
     @Override
     public void enable() {
@@ -24,6 +25,12 @@ public final class Whitelist4Kook extends BukkitPlugin {
         HikariCPUtil.initHikariCP();
         DataManager.createTable();
         Bukkit.getPluginManager().registerEvents(PlayerListener.INSTANCE, this);
+        // Load whitelist enabled flag from config
+        try {
+            whitelistEnabled = Configs.enabled.value();
+        } catch (Throwable t) {
+            whitelistEnabled = true;
+        }
         regWhitelistCmd();
     }
 
@@ -97,6 +104,19 @@ public final class Whitelist4Kook extends BukkitPlugin {
 
     public static Whitelist4Kook getInstance() {
         return INSTANCE;
+    }
+
+    public boolean isWhitelistEnabled() {
+        return whitelistEnabled;
+    }
+
+    public void setWhitelistEnabled(boolean enabled) {
+        this.whitelistEnabled = enabled;
+        try {
+            getConfig().set("enabled", enabled);
+            saveConfig();
+        } catch (Throwable ignored) {
+        }
     }
 
 }

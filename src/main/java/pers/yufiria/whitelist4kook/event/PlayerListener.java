@@ -16,6 +16,9 @@ public enum PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerLogin(AsyncPlayerPreLoginEvent event) {
+        if (!Whitelist4Kook.getInstance().isWhitelistEnabled()) {
+            return;
+        }
         UUID uuid = event.getUniqueId();
         String bind = WhitelistManager.getBind(uuid);
         if (bind == null) {

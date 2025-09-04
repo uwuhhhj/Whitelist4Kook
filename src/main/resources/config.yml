@@ -1,8 +1,8 @@
 hikariCP:
   driver: com.mysql.cj.jdbc.Driver
-  connectionTimeout: 30000
+  connectionTimeout: 5000
   maxLifeTime: 30000
-  minimumIdle: 30000
+  minimumIdle: 1
   maximumPoolSize: 50
   autoCommit: true
 mysql:
@@ -11,7 +11,7 @@ mysql:
   database: whitelist
   user: root
   password: 123456
-  args: '?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai'
+  args: '?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&connectTimeout=3000&socketTimeout=5000'
 #是否踢出未绑定玩家
 enabled: false
 #验证码过期的时间，单位为秒

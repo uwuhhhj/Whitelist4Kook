@@ -1,10 +1,7 @@
 package pers.yufiria.whitelist4kook.data;
 
-import crypticlib.chat.MsgSender;
-import pers.yufiria.whitelist4kook.Whitelist4Kook;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.bukkit.configuration.ConfigurationSection;
 import pers.yufiria.whitelist4kook.config.Configs;
 
 import java.sql.Connection;
@@ -22,6 +19,12 @@ public class HikariCPUtil {
         hikariConfig.setMaxLifetime(Configs.hikariCPMaxLifeTime.value());
         hikariConfig.setMaximumPoolSize(Configs.hikariCPMaxPoolSize.value());
         hikariConfig.setAutoCommit(Configs.hikariCPAutoCommit.value());
+        // Fast-fail settings: short timeouts and minimal idle to avoid long stalls
+        try {
+            hikariConfig.setValidationTimeout(3000);
+            hikariConfig.setInitializationFailTimeout(1_000);
+        } catch (Throwable ignored) {
+        }
         String mysqlUrl = "jdbc:mysql://"
                 + Configs.mysqlAddress.value() + ":"
                 + Configs.mysqlPort.value() + "/"

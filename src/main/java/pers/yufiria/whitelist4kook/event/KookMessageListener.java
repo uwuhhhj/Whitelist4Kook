@@ -4,13 +4,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import pers.yufiria.whitelist4kook.Whitelist4Kook;
+import pers.yufiria.whitelist4kook.util.Async;
 import pers.yufiria.kookmc.event.kook.channel.KookChannelMessageEvent;
-import pers.yufiria.kookmc.event.kook.pm.KookPrivateMessageReceivedEvent;
-import snw.jkook.entity.Guild;
 import snw.jkook.entity.User;
 import snw.jkook.entity.channel.Channel;
 import snw.jkook.message.ChannelMessage;
-import snw.jkook.message.PrivateMessage;
 import snw.jkook.message.component.BaseComponent;
 import snw.jkook.message.component.card.CardComponent;
 import snw.jkook.message.component.card.MultipleCardComponent;
@@ -58,34 +56,38 @@ public enum KookMessageListener implements Listener {
                             String.format("[KOOK][Ticket] channel=%s mentioned_kookid=%s 又双叒叕新公单了", chName, mentionedId)
                     );
 
-                    // Lookup bind by KOOK ID and reply accordingly
-                    try {
-                        String uuidStr = pers.yufiria.whitelist4kook.data.DataManager.getBind(mentionedId);
-                        if (uuidStr == null || uuidStr.isEmpty()) {
-                            msg.reply("此用户未绑定游戏id可以前往测试服进行绑定");
-                        } else {
-                            String playerName = null;
-                            try {
-                                java.util.UUID uuid = java.util.UUID.fromString(uuidStr);
-                                playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
-                            } catch (Throwable ignored) {
+                    // DB async, map player and reply on main thread
+                    final String finalMentionedId = mentionedId;
+                    Async.supplyDb(Whitelist4Kook.getInstance(),
+                            () -> pers.yufiria.whitelist4kook.data.DataManager.getBind(finalMentionedId),
+                            uuidStr -> {
+                                if (uuidStr == null || uuidStr.isEmpty()) {
+                                    msg.reply("此用户未绑定游戏id可以前往测试服进行绑定");
+                                } else {
+                                    String playerName = null;
+                                    try {
+                                        java.util.UUID uuid = java.util.UUID.fromString(uuidStr);
+                                        playerName = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+                                    } catch (Throwable ignored) {
+                                    }
+                                    if (playerName == null || playerName.isEmpty()) {
+                                        msg.reply("当前KOOK用户绑定了玩家，但未获取到玩家名（UUID=" + uuidStr + ")");
+                                    } else {
+                                        msg.reply("当前KOOK用户是玩家：" + playerName);
+                                    }
+                                }
+                            },
+                            ex -> {
+                                Bukkit.getLogger().warning("[Whitelist4Kook] DB unavailable or timeout: " + ex.getMessage());
+                                try { msg.reply("数据库不可用或超时"); } catch (Throwable ignore) {}
                             }
-                            if (playerName == null || playerName.isEmpty()) {
-                                msg.reply("当前KOOK用户绑定了玩家，但未获取到玩家名（UUID=" + uuidStr + ")");
-                            } else {
-                                msg.reply("当前KOOK用户是玩家：" + playerName);
-                            }
-                        }
-                    } catch (Throwable ex) {
-                        Bukkit.getLogger().warning("[Whitelist4Kook] Failed to query bind or reply: " + ex.getMessage());
-                    }
+                    );
                 }
             }
         } catch (Throwable t) {
             Bukkit.getLogger().warning("[Whitelist4Kook] Failed to log channel message: " + t.getMessage());
         }
     }
-
 
     private static String extractMentionedKookId(BaseComponent component) {
         if (component == null) return null;
@@ -154,18 +156,5 @@ public enum KookMessageListener implements Listener {
             return "<unreadable message>";
         }
     }
-
-    private static String safe(SupplierWithFallback<String> primary, String fallback) {
-        try {
-            String v = primary.get();
-            return v == null ? fallback : v;
-        } catch (Throwable ignored) {
-            return fallback;
-        }
-    }
-
-    @FunctionalInterface
-    private interface SupplierWithFallback<T> {
-        T get();
-    }
 }
+

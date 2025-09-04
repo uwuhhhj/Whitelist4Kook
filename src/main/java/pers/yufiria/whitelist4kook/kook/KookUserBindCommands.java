@@ -156,6 +156,13 @@ public final class KookUserBindCommands {
                 }
             }
         }));
+
+        // /你好
+        KookMC.getInstance().regKookCommand((new JKookCommand("你好", "/")).executesUser((user, arguments, message) -> {
+            Guild guild = ((ChannelMessage) message).getChannel().getGuild();
+            String topRole = getTopRoleByOrder(user, guild);
+            message.reply("你好"+topRole);
+        }));
     }
 
     private static int getRoleIdFromConfig(String key) {

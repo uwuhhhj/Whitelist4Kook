@@ -24,7 +24,7 @@ public final class KookUserBindCommands {
     public static void register() {
         // /bind
         KookMC.getInstance().regKookCommand((new JKookCommand("bind", "/")).addAlias("bd").executesUser((user, arguments, message) -> {
-            if (!isChannelAllowBind((ChannelMessage) message)) return;
+            if (!(message instanceof ChannelMessage) || !isChannelAllowBind((ChannelMessage) message)) return;
 
             Async.supplyDb(Whitelist4Kook.getInstance(),
                     () -> WhitelistManager.getBind(user),
@@ -32,6 +32,7 @@ public final class KookUserBindCommands {
                         if (bind != null) {
                             String replyMsg = (String) Configs.langBotBindBound.value();
                             String playerName = Bukkit.getOfflinePlayer(UUID.fromString(bind)).getName();
+                            if (playerName == null) playerName = "";
                             replyMsg = replyMsg.replace("%player%", playerName);
                             message.reply(replyMsg);
                             return;
@@ -51,7 +52,7 @@ public final class KookUserBindCommands {
                                 () -> WhitelistManager.addBind(uuid, user),
                                 t -> {
                                     Whitelist4Kook.getInstance().getLogger().log(Level.WARNING, "DB unavailable or timeout on bind: {0}", t.getMessage());
-                                    message.reply("数据库不可用或超时");
+                                    message.reply((String) Configs.langCommonDbUnavailableTimeout.value());
                                 },
                                 () -> {
                                     String replyMsg = (String) Configs.langBotBindSuccess.value();
@@ -77,23 +78,24 @@ public final class KookUserBindCommands {
                     },
                     t -> {
                         Whitelist4Kook.getInstance().getLogger().log(Level.WARNING, "DB unavailable or timeout on bind precheck: {0}", t.getMessage());
-                        message.reply("数据库不可用或超时");
+                        message.reply((String) Configs.langCommonDbUnavailableTimeout.value());
                     }
             );
         }));
 
         // /bind-kookid-search
         KookMC.getInstance().regKookCommand((new JKookCommand("bind-kookid-search", "/")).executesUser((user, arguments, message) -> {
+            if (!(message instanceof ChannelMessage)) return;
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
             if (topRole == null) {
-                message.reply("你没有权限进行查询");
+                message.reply((String) Configs.langBotSearchNoPermission.value());
             } else if (arguments.length < 1) {
-                message.reply("请输入查询的kookid参数");
+                message.reply((String) Configs.langBotSearchEnterKookId.value());
             } else {
                 String kookId = arguments[0].toString().trim();
                 if (!kookId.matches("\\d+")) {
-                    message.reply("kookid必须为纯数字");
+                    message.reply((String) Configs.langBotSearchKookIdMustDigits.value());
                 } else {
                     Async.supplyDb(Whitelist4Kook.getInstance(),
                             () -> DataManager.getBind(kookId),
@@ -103,18 +105,20 @@ public final class KookUserBindCommands {
                                         UUID uuid = UUID.fromString(uuidStr);
                                         String playerName = Bukkit.getOfflinePlayer(uuid).getName();
                                         if (playerName != null && !playerName.isEmpty()) {
-                                            message.reply("绑定的玩家：" + playerName);
+                                            String msg = (String) Configs.langBotSearchBoundPlayer.value();
+                                            message.reply(msg.replace("%player%", playerName));
                                         } else {
-                                            message.reply("查询到绑定，但未获取到玩家名");
+                                            message.reply((String) Configs.langBotSearchFoundButNoName.value());
                                         }
-                                    } catch (Throwable var10) {
-                                        message.reply("查询到记录，但UUID无效" + uuidStr);
+                                    } catch (Throwable ex) {
+                                        String msg = (String) Configs.langBotSearchUuidInvalid.value();
+                                        message.reply(msg.replace("%uuid%", uuidStr));
                                     }
                                 } else {
-                                    message.reply("未找到该KOOK ID的绑定记录");
+                                    message.reply((String) Configs.langBotSearchNoRecordForKookId.value());
                                 }
                             },
-                            t -> message.reply("数据库不可用或超时")
+                            t -> message.reply((String) Configs.langCommonDbUnavailableTimeout.value())
                     );
                 }
             }
@@ -122,46 +126,49 @@ public final class KookUserBindCommands {
 
         // /bind-player-search
         KookMC.getInstance().regKookCommand((new JKookCommand("bind-player-search", "/")).executesUser((user, arguments, message) -> {
+            if (!(message instanceof ChannelMessage)) return;
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
             if (topRole == null) {
-                message.reply("你没有权限进行查询");
+                message.reply((String) Configs.langBotSearchNoPermission.value());
             } else if (arguments.length < 1) {
-                message.reply("请输入查询的玩家名字");
+                message.reply((String) Configs.langBotSearchEnterPlayerName.value());
             } else {
                 String playerName = arguments[0].toString().trim();
                 if (playerName.isEmpty()) {
-                    message.reply("玩家名不能为空");
+                    message.reply((String) Configs.langBotSearchPlayerNameEmpty.value());
                 } else {
                     try {
                         UUID uuid = Bukkit.getOfflinePlayer(playerName).getUniqueId();
                         if (uuid == null) {
-                            message.reply("未找到该玩家的UUID");
+                            message.reply((String) Configs.langBotSearchUuidNotFound.value());
                             return;
                         }
                         Async.supplyDb(Whitelist4Kook.getInstance(),
                                 () -> DataManager.getBind(uuid),
                                 kookId -> {
                                     if (kookId != null && !kookId.isEmpty()) {
-                                        message.reply("绑定的KOOK ID" + kookId);
+                                        String msg = (String) Configs.langBotSearchBoundKookId.value();
+                                        message.reply(msg.replace("%kookid%", kookId));
                                     } else {
-                                        message.reply("未找到该玩家的绑定记录");
+                                        message.reply((String) Configs.langBotSearchNoRecordForPlayer.value());
                                     }
                                 },
-                                t -> message.reply("数据库不可用或超时")
+                                t -> message.reply((String) Configs.langCommonDbUnavailableTimeout.value())
                         );
-                    } catch (Throwable var9) {
-                        message.reply("查询失败，请检查玩家名是否正确");
+                    } catch (Throwable ex) {
+                        message.reply((String) Configs.langBotSearchQueryFailCheckName.value());
                     }
                 }
             }
         }));
 
-        // /你好
+        // /你好 (test)
         KookMC.getInstance().regKookCommand((new JKookCommand("你好", "/")).executesUser((user, arguments, message) -> {
+            if (!(message instanceof ChannelMessage)) return;
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
-            message.reply("你好"+topRole);
+            message.reply("你好" + topRole);
         }));
     }
 
@@ -195,7 +202,7 @@ public final class KookUserBindCommands {
                                 if (userRoles.contains(id)) {
                                     return roleName;
                                 }
-                            } catch (NumberFormatException var9) {
+                            } catch (NumberFormatException ignored) {
                             }
                         }
                     }
@@ -204,7 +211,7 @@ public final class KookUserBindCommands {
                     return null;
                 }
             }
-        } catch (Throwable var10) {
+        } catch (Throwable ignored) {
             return null;
         }
     }
@@ -212,7 +219,7 @@ public final class KookUserBindCommands {
     private static boolean isChannelAllowBind(ChannelMessage message) {
         snw.jkook.entity.channel.Channel channel = message.getChannel();
         Guild guild = channel.getGuild();
-        return ((List) Configs.bindGuilds.value()).contains(guild.getId()) && ((List) Configs.bindChannels.value()).contains(channel.getId());
+        return ((List<?>) Configs.bindGuilds.value()).contains(guild.getId()) && ((List<?>) Configs.bindChannels.value()).contains(channel.getId());
     }
 }
 

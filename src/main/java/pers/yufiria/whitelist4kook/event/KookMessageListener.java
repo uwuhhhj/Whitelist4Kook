@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import pers.yufiria.whitelist4kook.Whitelist4Kook;
+import pers.yufiria.whitelist4kook.config.Configs;
 import pers.yufiria.whitelist4kook.util.Async;
 import pers.yufiria.kookmc.event.kook.channel.KookChannelMessageEvent;
 import snw.jkook.entity.User;
@@ -62,7 +63,7 @@ public enum KookMessageListener implements Listener {
                             () -> pers.yufiria.whitelist4kook.data.DataManager.getBind(finalMentionedId),
                             uuidStr -> {
                                 if (uuidStr == null || uuidStr.isEmpty()) {
-                                    msg.reply("此用户未绑定游戏id可以前往测试服进行绑定");
+                                    msg.reply((String) Configs.langTicketNotBindYet.value());
                                 } else {
                                     String playerName = null;
                                     try {
@@ -73,7 +74,8 @@ public enum KookMessageListener implements Listener {
                                     if (playerName == null || playerName.isEmpty()) {
                                         msg.reply("当前KOOK用户绑定了玩家，但未获取到玩家名（UUID=" + uuidStr + ")");
                                     } else {
-                                        msg.reply("当前KOOK用户是玩家：" + playerName);
+                                        String reply = (String) Configs.langTicketHasBindYet.value();
+                                        msg.reply(reply.replace("%player%", playerName));
                                     }
                                 }
                             },

@@ -126,4 +126,14 @@ public class Configs {
             "查询失败，请检查玩家名是否正确"
     );
 
+    // OpenAI / ChatGPT API
+    public static StringConfig openaiApiBase = new StringConfig(
+            "openai.api_base",
+            "https://api.openai.com"
+    );
+    public static StringConfig openaiToken = new StringConfig(
+            "openai.token",
+            ""
+    );
+
 }

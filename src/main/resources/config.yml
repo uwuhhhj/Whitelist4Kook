@@ -25,6 +25,9 @@ bind_channels:
 roles:
   工作人员: '48456844'
   玩家: '40572151'
+openai:
+  api_base: "https://api.openai.com"
+  token: ""
 lang:
   bot:
     bind:

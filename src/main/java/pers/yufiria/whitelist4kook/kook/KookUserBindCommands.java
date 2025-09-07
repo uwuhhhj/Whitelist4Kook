@@ -12,6 +12,7 @@ import snw.jkook.command.JKookCommand;
 import snw.jkook.entity.Guild;
 import snw.jkook.entity.User;
 import snw.jkook.message.ChannelMessage;
+import snw.jkook.message.Message;
 
 import java.util.Collection;
 import java.util.List;
@@ -26,6 +27,14 @@ import java.time.Duration;
 public final class KookUserBindCommands {
     private KookUserBindCommands() {}
 
+    // 推荐：统一封装一个异步发送（使用 Bukkit Scheduler 管理异步任务）
+    private static void replyAsync(Message msg, String text) {
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
+                Whitelist4Kook.getInstance(),
+                () -> { try { msg.reply(text); } catch (Throwable ignored) {} }
+        );
+    }
+
     public static void register() {
         // /bind
         KookMC.getInstance().regKookCommand((new JKookCommand("bind", "/")).addAlias("bd").executesUser((user, arguments, message) -> {
@@ -39,16 +48,16 @@ public final class KookUserBindCommands {
                             String playerName = Bukkit.getOfflinePlayer(UUID.fromString(bind)).getName();
                             if (playerName == null) playerName = "";
                             replyMsg = replyMsg.replace("%player%", playerName);
-                            message.reply(replyMsg);
+                            replyAsync(message, replyMsg);
                             return;
                         }
                         if (arguments.length < 1) {
-                            message.reply((String) Configs.langBotBindEnterCode.value());
+                            replyAsync(message, (String) Configs.langBotBindEnterCode.value());
                             return;
                         }
                         String code = arguments[0].toString().replace("\\s", "");
                         if (!WhitelistManager.getBindCodeMap().containsKey(code)) {
-                            message.reply((String) Configs.langBotBindNotExistCode.value());
+                            replyAsync(message, (String) Configs.langBotBindNotExistCode.value());
                             return;
                         }
 
@@ -57,12 +66,12 @@ public final class KookUserBindCommands {
                                 () -> WhitelistManager.addBind(uuid, user),
                                 t -> {
                                     Whitelist4Kook.getInstance().getLogger().log(Level.WARNING, "DB unavailable or timeout on bind: {0}", t.getMessage());
-                                    message.reply((String) Configs.langCommonDbUnavailableTimeout.value());
+                                    replyAsync(message, (String) Configs.langCommonDbUnavailableTimeout.value());
                                 },
                                 () -> {
                                     String replyMsg = (String) Configs.langBotBindSuccess.value();
                                     replyMsg = replyMsg.replace("%player%", WhitelistManager.getPlayerNameCache(uuid));
-                                    message.reply(replyMsg);
+                                    replyAsync(message, replyMsg);
                                     WhitelistManager.removeBindCodeCache(code);
 
                                     try {
@@ -83,7 +92,7 @@ public final class KookUserBindCommands {
                     },
                     t -> {
                         Whitelist4Kook.getInstance().getLogger().log(Level.WARNING, "DB unavailable or timeout on bind precheck: {0}", t.getMessage());
-                        message.reply((String) Configs.langCommonDbUnavailableTimeout.value());
+                        replyAsync(message, (String) Configs.langCommonDbUnavailableTimeout.value());
                     }
             );
         }));
@@ -94,13 +103,13 @@ public final class KookUserBindCommands {
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
             if (topRole == null) {
-                message.reply((String) Configs.langBotSearchNoPermission.value());
+                replyAsync(message, (String) Configs.langBotSearchNoPermission.value());
             } else if (arguments.length < 1) {
-                message.reply((String) Configs.langBotSearchEnterKookId.value());
+                replyAsync(message, (String) Configs.langBotSearchEnterKookId.value());
             } else {
                 String kookId = arguments[0].toString().trim();
                 if (!kookId.matches("\\d+")) {
-                    message.reply((String) Configs.langBotSearchKookIdMustDigits.value());
+                    replyAsync(message, (String) Configs.langBotSearchKookIdMustDigits.value());
                 } else {
                     Async.supplyDb(Whitelist4Kook.getInstance(),
                             () -> DataManager.getBind(kookId),
@@ -110,20 +119,20 @@ public final class KookUserBindCommands {
                                         UUID uuid = UUID.fromString(uuidStr);
                                         String playerName = Bukkit.getOfflinePlayer(uuid).getName();
                                         if (playerName != null && !playerName.isEmpty()) {
-                                            String msg = (String) Configs.langBotSearchBoundPlayer.value();
-                                            message.reply(msg.replace("%player%", playerName));
-                                        } else {
-                                            message.reply((String) Configs.langBotSearchFoundButNoName.value());
-                                        }
-                                    } catch (Throwable ex) {
-                                        String msg = (String) Configs.langBotSearchUuidInvalid.value();
-                                        message.reply(msg.replace("%uuid%", uuidStr));
+                                        String msg = (String) Configs.langBotSearchBoundPlayer.value();
+                                        replyAsync(message, msg.replace("%player%", playerName));
+                                    } else {
+                                        replyAsync(message, (String) Configs.langBotSearchFoundButNoName.value());
                                     }
-                                } else {
-                                    message.reply((String) Configs.langBotSearchNoRecordForKookId.value());
+                                } catch (Throwable ex) {
+                                    String msg = (String) Configs.langBotSearchUuidInvalid.value();
+                                    replyAsync(message, msg.replace("%uuid%", uuidStr));
                                 }
-                            },
-                            t -> message.reply((String) Configs.langCommonDbUnavailableTimeout.value())
+                            } else {
+                                replyAsync(message, (String) Configs.langBotSearchNoRecordForKookId.value());
+                            }
+                        },
+                        t -> replyAsync(message, (String) Configs.langCommonDbUnavailableTimeout.value())
                     );
                 }
             }
@@ -135,18 +144,18 @@ public final class KookUserBindCommands {
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
             if (topRole == null) {
-                message.reply((String) Configs.langBotSearchNoPermission.value());
+                replyAsync(message, (String) Configs.langBotSearchNoPermission.value());
             } else if (arguments.length < 1) {
-                message.reply((String) Configs.langBotSearchEnterPlayerName.value());
+                replyAsync(message, (String) Configs.langBotSearchEnterPlayerName.value());
             } else {
                 String playerName = arguments[0].toString().trim();
                 if (playerName.isEmpty()) {
-                    message.reply((String) Configs.langBotSearchPlayerNameEmpty.value());
+                    replyAsync(message, (String) Configs.langBotSearchPlayerNameEmpty.value());
                 } else {
                     try {
                         UUID uuid = Bukkit.getOfflinePlayer(playerName).getUniqueId();
                         if (uuid == null) {
-                            message.reply((String) Configs.langBotSearchUuidNotFound.value());
+                            replyAsync(message, (String) Configs.langBotSearchUuidNotFound.value());
                             return;
                         }
                         Async.supplyDb(Whitelist4Kook.getInstance(),
@@ -154,15 +163,15 @@ public final class KookUserBindCommands {
                                 kookId -> {
                                     if (kookId != null && !kookId.isEmpty()) {
                                         String msg = (String) Configs.langBotSearchBoundKookId.value();
-                                        message.reply(msg.replace("%kookid%", kookId));
+                                        replyAsync(message, msg.replace("%kookid%", kookId));
                                     } else {
-                                        message.reply((String) Configs.langBotSearchNoRecordForPlayer.value());
+                                        replyAsync(message, (String) Configs.langBotSearchNoRecordForPlayer.value());
                                     }
                                 },
-                                t -> message.reply((String) Configs.langCommonDbUnavailableTimeout.value())
+                                t -> replyAsync(message, (String) Configs.langCommonDbUnavailableTimeout.value())
                         );
                     } catch (Throwable ex) {
-                        message.reply((String) Configs.langBotSearchQueryFailCheckName.value());
+                        replyAsync(message, (String) Configs.langBotSearchQueryFailCheckName.value());
                     }
                 }
             }
@@ -173,7 +182,7 @@ public final class KookUserBindCommands {
             if (!(message instanceof ChannelMessage)) return;
             Guild guild = ((ChannelMessage) message).getChannel().getGuild();
             String topRole = getTopRoleByOrder(user, guild);
-            message.reply("你好" + topRole);
+            replyAsync(message, "你好" + topRole);
         }));
 
         // /chatgpt 内容
@@ -183,23 +192,23 @@ public final class KookUserBindCommands {
             String userTopRole = getTopRoleByOrder(user, guild);
             String highestRole = getHighestRoleName();
             if (userTopRole == null || highestRole == null || !highestRole.equals(userTopRole)) {
-                message.reply("你没有最高级权限，无法使用此指令");
+                replyAsync(message, "你没有最高级权限，无法使用此指令");
                 return;
             }
 
             String apiBase = (String) Configs.openaiApiBase.value();
             String token = (String) Configs.openaiToken.value();
             if (apiBase == null || apiBase.isBlank() || token == null || token.isBlank()) {
-                message.reply("未配置 OpenAI api_base 或 token");
+                replyAsync(message, "未配置 OpenAI api_base 或 token");
                 return;
             }
             if (arguments.length < 1) {
-                message.reply("用法：/chatgpt 内容");
+                replyAsync(message, "用法：/chatgpt 内容");
                 return;
             }
 
             String prompt = joinArgs(arguments);
-            message.reply("已提交到 ChatGPT，正在生成回复…");
+            replyAsync(message, "已提交到 ChatGPT，正在生成回复…");
 
             String finalApi = apiBase.endsWith("/") ? (apiBase + "v1/chat/completions") : (apiBase + "/v1/chat/completions");
 
@@ -207,20 +216,20 @@ public final class KookUserBindCommands {
                     () -> doChatCompletion(finalApi, token, prompt),
                     resp -> {
                         if (resp == null || resp.isBlank()) {
-                            message.reply("调用失败：未返回数据");
+                            replyAsync(message, "调用失败：未返回数据");
                         } else {
                             String content = extractContentFromOpenAIResponse(resp);
                             if (content == null || content.isBlank()) {
                                 // fallback to raw body
-                                message.reply("[原始响应] " + (resp.length() > 1800 ? resp.substring(0, 1800) + "…" : resp));
+                                replyAsync(message, "[原始响应] " + (resp.length() > 1800 ? resp.substring(0, 1800) + "…" : resp));
                             } else {
-                                message.reply(content.length() > 1800 ? content.substring(0, 1800) + "…" : content);
+                                replyAsync(message, content.length() > 1800 ? content.substring(0, 1800) + "…" : content);
                             }
                         }
                     },
                     err -> {
                         Whitelist4Kook.getInstance().getLogger().log(Level.WARNING, "ChatGPT 调用失败: {0}", err.toString());
-                        message.reply("调用失败：" + err.getMessage());
+                        replyAsync(message, "调用失败：" + err.getMessage());
                     }
             );
         }));

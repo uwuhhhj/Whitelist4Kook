@@ -29,8 +29,8 @@ public final class KookUserBindCommands {
 
     // 推荐：统一封装一个异步发送（使用 Bukkit Scheduler 管理异步任务）
     private static void replyAsync(Message msg, String text) {
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
-                Whitelist4Kook.getInstance(),
+        Bukkit.getScheduler().runTaskAsynchronously(
+            Whitelist4Kook.getInstance(),
                 () -> { try { msg.reply(text); } catch (Throwable ignored) {} }
         );
     }
@@ -122,7 +122,8 @@ public final class KookUserBindCommands {
                                         String msg = (String) Configs.langBotSearchBoundPlayer.value();
                                         replyAsync(message, msg.replace("%player%", playerName));
                                     } else {
-                                        replyAsync(message, (String) Configs.langBotSearchFoundButNoName.value());
+                                        String msg = (String) Configs.langBotSearchFoundButNoName.value();
+                                        replyAsync(message, msg.replace("%uuid%", uuidStr));
                                     }
                                 } catch (Throwable ex) {
                                     String msg = (String) Configs.langBotSearchUuidInvalid.value();
